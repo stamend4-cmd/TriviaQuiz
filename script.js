@@ -14,7 +14,6 @@ const db = firebase.firestore();
 // ---------------- DOM ELEMENTS ----------------
 const googleLoginBtn = document.getElementById("googleLoginBtn");
 const emailRegisterBtn = document.getElementById("emailRegisterBtn");
-const facebookLoginBtn = document.getElementById("facebookLoginBtn");
 const emailDiv = document.getElementById("emailDiv");
 const emailLoginBtn = document.getElementById("emailLoginBtn");
 const emailRegisterSubmitBtn = document.getElementById("emailRegisterSubmitBtn");
@@ -44,22 +43,11 @@ let questions = [], current = 0, score = 0, timer;
 let fiftyUsed = false, hintUsed = false, ladderLevel = 0;
 let timePerQuestion = 30;
 
-// ---------------- FALLBACK QUESTIONS ----------------
-const fallbackQuestions = [
-  { question: "What color is the sky?", correctAnswer: "Blue", incorrectAnswers: ["Red","Green","Yellow"], hint: "It's the same color as the ocean." },
-  { question: "How many days are in a week?", correctAnswer: "7", incorrectAnswers: ["5","6","8"], hint: "Think Monday to Sunday." },
-  { question: "Which planet is known as the Red Planet?", correctAnswer: "Mars", incorrectAnswers: ["Venus","Jupiter","Saturn"], hint: "Named after Roman god of war." }
-];
-
 // ---------------- LOGIN ----------------
 googleLoginBtn.addEventListener("click", async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-    onLoginSuccess();
-  } catch (e) {
-    alert("Login failed!"); console.error(e);
-  }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  await auth.signInWithPopup(provider);
+  onLoginSuccess();
 });
 
 emailRegisterBtn.addEventListener("click", ()=>{ emailDiv.style.display="block"; authDiv.style.display="none"; });
@@ -134,7 +122,9 @@ async function startQuiz() {
     }));
   } catch (err) {
     console.error("API fetch error:", err);
-    questions = fallbackQuestions;
+    questions = [
+      { question: "Fallback question: 2+2?", correctAnswer: "4", incorrectAnswers: ["3","5","6"], hint: "Simple math!" }
+    ];
   }
 
   showQuestion();
@@ -165,14 +155,13 @@ function showQuestion() {
     quizDiv.appendChild(btn);
   });
 
-  // Circular timer animation
   timerBar.style.width="100%";
-  timerText.textContent=`${timePerQuestion}s`;
+  timerText.textContent=`${timeLeft}s`;
   timer = setInterval(()=>{
     timeLeft--;
     updateTimer(timeLeft);
     if(timeLeft <=5 && timeLeft>0) tickSound.play();
-    if(timeLeft<=0){ clearInterval(timer); nextQuestion(false); }
+    if(timeLeft<=0){ clearInterval(timer); checkAnswer("",null); }
   },1000);
 }
 
@@ -204,26 +193,27 @@ function checkAnswer(answer, btnClicked){
 
   if(answer===correct){
     score++; ladderLevel++; updateMoneyLadder();
-    feedback.innerHTML="✅ <b>Correct!</b>"; correctSound.play();
+    feedback.innerHTML="✅ <b>Correct!</b>";
+    correctSound.play();
   } else {
-    feedback.innerHTML=`❌ <b>Wrong!</b><br><span class="correct-answer">Correct: <b>${correct}</b></span>`; 
+    feedback.innerHTML=`❌ <b>Wrong!</b><br><span class="correct-answer">Correct: <b>${correct}</b></span>`;
     wrongSound.play();
   }
 
-  setTimeout(nextQuestion,1800);
-}
+  // Animate money ladder highlight
+  updateMoneyLadder();
 
-// ---------------- NEXT QUESTION ----------------
-function nextQuestion(){
-  current++;
-  if(current>=questions.length){
-    quizDiv.innerHTML=`<h2>Finished!</h2><p>Score: ${score}/${questions.length}</p><button id="restartBtn">Restart</button>`;
-    document.getElementById("restartBtn").addEventListener("click", ()=>location.reload());
-    lifelines.style.display="none"; moneyList.style.display="none"; hintBox.style.display="none";
-    const user = auth.currentUser; if(user) saveScore(user, score);
-    return;
-  }
-  showQuestion();
+  setTimeout(()=>{
+    current++;
+    if(current>=questions.length){
+      quizDiv.innerHTML=`<h2>Finished!</h2><p>Score: ${score}/${questions.length}</p><button id="restartBtn">Restart</button>`;
+      document.getElementById("restartBtn").addEventListener("click", ()=>location.reload());
+      lifelines.style.display="none"; moneyList.style.display="none"; hintBox.style.display="none";
+      const user = auth.currentUser; if(user) saveScore(user, score);
+      return;
+    }
+    showQuestion();
+  },1800);
 }
 
 // ---------------- LIFELINES ----------------
