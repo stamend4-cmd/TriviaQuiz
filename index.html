@@ -96,6 +96,64 @@
   <audio id="tick-sound" src="tick.mp3"></audio>
 
 </div>
-<script src="script.js"></script>
+
+<script>
+// ---------------- GLOBALS ----------------
+let questions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let timerInterval;
+let timerDuration = 30;
+
+// ---------------- UTILITIES ----------------
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// ---------------- FETCH QUESTIONS ----------------
+async function fetchQuestions(category, count) {
+  questions = [];
+
+  // OpenTDB
+  try {
+    const otResp = await fetch(`https://opentdb.com/api.php?amount=${Math.floor(count/3)}&category=9&type=multiple`);
+    const otData = await otResp.json();
+    questions.push(...otData.results.map(q => ({
+      question: q.question,
+      correct: q.correct_answer,
+      answers: shuffle([...q.incorrect_answers, q.correct_answer])
+    })));
+  } catch(e){ console.error('OpenTDB failed', e); }
+
+  // Trivia API
+  try {
+    const tResp = await fetch(`https://the-trivia-api.com/api/questions?categories=${category}&limit=${Math.floor(count/3)}`);
+    const tData = await tResp.json();
+    questions.push(...tData.map(q => ({
+      question: q.question,
+      correct: q.correctAnswer,
+      answers: shuffle([...q.incorrectAnswers, q.correctAnswer])
+    })));
+  } catch(e){ console.error('Trivia API failed', e); }
+
+  // QuizAPI.io
+  try {
+    const quizAPIKey = 'Wh9Plnz7rOMzEpgZsjHIomRe6nL4TKiB6VQxOk08';
+    const qResp = await fetch(`https://quizapi.io/api/v1/questions?apiKey=${quizAPIKey}&category=${category}&limit=${Math.floor(count/3)}`);
+    const qData = await qResp.json();
+    qData.forEach(q => {
+      let answers = [];
+      for(let key in q.answers){ if(q.answers[key]) answers.push(q.answers[key]); }
+      questions.push({ question: q.question, correct: q.correct_answer, answers: shuffle(answers) });
+    });
+  } catch(e){ console.error('QuizAPI.io failed', e); }
+
+  questions = shuffle(questions).slice(0, count);
+  console.log('Loaded questions:', questions);
+}
+
+// ---------------- TODO: Add START QUIZ, SHOW QUESTION, TIMER, BUTTON CLICK, MONEY LADDER, LIFELINES logic ----------------
+</script>
+
 </body>
 </html>
