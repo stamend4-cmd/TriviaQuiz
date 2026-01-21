@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon Quiz App</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- Firebase SDK (Optional if you want leaderboard/auth) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="container">
@@ -12,17 +17,54 @@
   <!-- LOGIN / REGISTER -->
   <div id="authDiv">
     <h1>🎯 Neon Quiz Challenge</h1>
+    <button id="googleLoginBtn">Login with Google</button>
+    <button id="emailRegisterBtn">Register / Login with Email</button>
+  </div>
+
+  <!-- EMAIL LOGIN FORM -->
+  <div id="emailDiv" style="display:none;">
+    <input type="email" id="emailInput" placeholder="Email">
+    <input type="password" id="passwordInput" placeholder="Password">
+    <button id="emailLoginBtn">Login</button>
+    <button id="emailRegisterSubmitBtn">Register</button>
+    <button id="emailCancelBtn">Cancel</button>
+  </div>
+
+  <!-- LOGOUT -->
+  <div id="logoutDiv" style="display:none; margin-bottom:15px;">
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- CATEGORY SELECTION -->
+  <div id="categoryDiv">
+    <label for="categorySelect">Choose Category:</label>
+    <select id="categorySelect">
+      <option value="science">Science</option>
+      <option value="history">History</option>
+      <option value="geography">Geography</option>
+      <option value="music">Music</option>
+      <option value="film_and_tv">Film & TV</option>
+      <option value="sports">Sports</option>
+      <option value="food_and_drink">Food & Drink</option>
+      <option value="general_knowledge">General Knowledge</option>
+    </select>
+
+    <label for="questionCount">Number of Questions:</label>
+    <select id="questionCount">
+      <option value="10">10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="25">25</option>
+      <option value="30">30</option>
+    </select>
+
     <button id="startBtn">Start Quiz</button>
   </div>
 
   <!-- QUIZ + MONEY LADDER -->
   <div id="quiz-container" style="display:none;">
     <div id="quiz-and-ladder">
-      <div id="quiz">
-        <h2 id="question-number"></h2>
-        <p id="question-text"></p>
-        <div id="answers"></div>
-      </div>
+      <div id="quiz"></div>
       <ul id="money-list"></ul>
     </div>
 
@@ -43,7 +85,17 @@
 
   </div>
 
+  <!-- Leaderboard -->
+  <h2>🏆 Leaderboard</h2>
+  <ul id="leaderboard-list"></ul>
+
+  <!-- Sounds -->
+  <audio id="correct-sound" src="correct.wav"></audio>
+  <audio id="wrong-sound" src="wrong.wav"></audio>
+  <audio id="tick-sound" src="tick.mp3"></audio>
+
 </div>
+
 <script src="script.js"></script>
 </body>
 </html>
