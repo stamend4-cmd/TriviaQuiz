@@ -4,24 +4,35 @@
 let questions = [];
 let currentQuestionIndex = 0;
 let score = 0;
-let timer = null;
+let timerInterval = null;
 let timeLeft = 30;
 let usedFifty = false;
-let usedCall = false;
-let usedAudience = false;
+let usedHint = false;
 
 /* =========================
    DOM ELEMENTS
 ========================= */
+const categoryDiv = document.getElementById("categoryDiv");
+const quizContainer = document.getElementById("quiz-container");
 const quizDiv = document.getElementById("quiz");
 const startBtn = document.getElementById("startBtn");
 const categorySelect = document.getElementById("categorySelect");
 const questionCountSelect = document.getElementById("questionCount");
-const timerBar = document.getElementById("timer-bar");
-const timerText = document.getElementById("timer-text");
 const lifelinesDiv = document.getElementById("lifelines");
 const hintBox = document.getElementById("hint-box");
+
+const timerText = document.getElementById("timer-text");
+const timerCircle = document.querySelector("#timer-svg circle");
+const CIRCUMFERENCE = 2 * Math.PI * 35;
+
 const moneyList = document.getElementById("money-list");
+
+/* =========================
+   INIT
+========================= */
+timerCircle.style.strokeDasharray = CIRCUMFERENCE;
+timerCircle.style.strokeDashoffset = 0;
+categoryDiv.style.display = "block";
 
 /* =========================
    MONEY LADDER
@@ -29,8 +40,8 @@ const moneyList = document.getElementById("money-list");
 const moneyLevels = [
   "$0", "$100", "$200", "$300", "$500",
   "$1,000", "$2,000", "$4,000", "$8,000",
-  "$16,000", "$32,000", "$64,000", "$125,000",
-  "$250,000", "$500,000", "$1,000,000"
+  "$16,000", "$32,000", "$64,000",
+  "$125,000", "$250,000", "$500,000", "$1,000,000"
 ];
 
 moneyLevels.forEach(level => {
@@ -40,11 +51,11 @@ moneyLevels.forEach(level => {
 });
 
 /* =========================
-   FETCH QUESTIONS
+   FETCH QUESTIONS (OPEN TRIVIA DB)
 ========================= */
 async function fetchQuestions() {
   const amount = questionCountSelect.value;
-  const categoryMap = {
+  const categories = {
     science: 17,
     history: 23,
     geography: 22,
@@ -55,7 +66,7 @@ async function fetchQuestions() {
     general_knowledge: 9
   };
 
-  const category = categoryMap[categorySelect.value];
+  const category = categories[categorySelect.value];
   const url = `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=multiple`;
 
   const res = await fetch(url);
@@ -66,15 +77,21 @@ async function fetchQuestions() {
 /* =========================
    START QUIZ
 ========================= */
-startBtn.addEventListener("click", async () => {
+startBtn.onclick = async () => {
   await fetchQuestions();
+
   currentQuestionIndex = 0;
   score = 0;
-  usedFifty = usedCall = usedAudience = false;
+  usedFifty = false;
+  usedHint = false;
+
+  categoryDiv.style.display = "none";
+  quizContainer.style.display = "block";
   lifelinesDiv.style.display = "block";
   hintBox.innerHTML = "";
+
   showQuestion();
-});
+};
 
 /* =========================
    SHOW QUESTION
@@ -82,7 +99,6 @@ startBtn.addEventListener("click", async () => {
 function showQuestion() {
   resetTimer();
   quizDiv.innerHTML = "";
-  quizDiv.classList.add("fade-in");
 
   const q = questions[currentQuestionIndex];
   const questionEl = document.createElement("h2");
@@ -96,7 +112,7 @@ function showQuestion() {
     const btn = document.createElement("button");
     btn.className = "option-btn";
     btn.innerHTML = answer;
-    btn.onclick = () => selectAnswer(btn, q.correct_answer);
+    btn.onclick = () => handleAnswer(btn, q.correct_answer);
     quizDiv.appendChild(btn);
   });
 
@@ -105,55 +121,57 @@ function showQuestion() {
 }
 
 /* =========================
-   TIMER
+   TIMER (CIRCULAR)
 ========================= */
 function startTimer() {
   timeLeft = 30;
   timerText.textContent = "30s";
-  timerBar.style.width = "100%";
-  timerBar.style.background = "#00ffcc";
+  timerCircle.style.stroke = "#00ff00";
+  timerCircle.style.strokeDashoffset = 0;
 
-  timer = setInterval(() => {
+  timerInterval = setInterval(() => {
     timeLeft--;
     timerText.textContent = timeLeft + "s";
-    timerBar.style.width = (timeLeft / 30) * 100 + "%";
 
-    if (timeLeft <= 10) timerBar.style.background = "#ff4d4d";
+    const offset = CIRCUMFERENCE - (timeLeft / 30) * CIRCUMFERENCE;
+    timerCircle.style.strokeDashoffset = offset;
+
+    if (timeLeft <= 10) timerCircle.style.stroke = "#ff0000";
 
     if (timeLeft <= 0) {
-      clearInterval(timer);
-      revealCorrect(null);
+      clearInterval(timerInterval);
+      revealCorrect();
     }
   }, 1000);
 }
 
 function resetTimer() {
-  clearInterval(timer);
+  clearInterval(timerInterval);
 }
 
 /* =========================
-   ANSWER HANDLING
+   ANSWER LOGIC
 ========================= */
-function selectAnswer(button, correct) {
-  clearInterval(timer);
+function handleAnswer(button, correctAnswer) {
+  clearInterval(timerInterval);
   const buttons = document.querySelectorAll(".option-btn");
 
-  buttons.forEach(btn => btn.disabled = true);
+  buttons.forEach(b => b.disabled = true);
 
-  if (button.innerHTML === correct) {
+  if (button.innerHTML === correctAnswer) {
     button.classList.add("correct");
     score++;
     setTimeout(nextQuestion, 1200);
   } else {
     button.classList.add("wrong", "shake");
-    revealCorrect(correct);
+    revealCorrect(correctAnswer);
   }
 }
 
-function revealCorrect(correct) {
+function revealCorrect(correctAnswer) {
   const buttons = document.querySelectorAll(".option-btn");
   buttons.forEach(btn => {
-    if (btn.innerHTML === correct) {
+    if (btn.innerHTML === correctAnswer) {
       btn.classList.add("correct");
     }
   });
@@ -167,16 +185,16 @@ function nextQuestion() {
   if (currentQuestionIndex < questions.length) {
     showQuestion();
   } else {
-    quizDiv.innerHTML = `<h2>🎉 Finished!</h2><p>Score: ${score}</p>`;
+    quizDiv.innerHTML = `<h2>🎉 Quiz Finished</h2><p>Score: ${score}</p>`;
   }
 }
 
 /* =========================
-   MONEY LADDER UPDATE
+   MONEY LADDER
 ========================= */
 function updateMoneyLadder() {
   const items = moneyList.querySelectorAll("li");
-  items.forEach(li => li.classList.remove("current"));
+  items.forEach(i => i.classList.remove("current"));
   if (items[currentQuestionIndex]) {
     items[currentQuestionIndex].classList.add("current");
   }
@@ -192,31 +210,21 @@ document.getElementById("fiftyBtn").onclick = () => {
   usedFifty = true;
 
   const q = questions[currentQuestionIndex];
-  let wrongs = q.incorrect_answers.slice(0, 2);
+  let removed = 0;
 
   document.querySelectorAll(".option-btn").forEach(btn => {
-    if (wrongs.includes(btn.innerHTML)) btn.style.display = "none";
+    if (btn.innerHTML !== q.correct_answer && removed < 2) {
+      btn.style.display = "none";
+      removed++;
+    }
   });
 };
 
-// Call a Friend
+// Call a Friend (Hint)
 document.getElementById("hintBtn").onclick = () => {
-  if (usedCall) return;
-  usedCall = true;
+  if (usedHint) return;
+  usedHint = true;
 
   const q = questions[currentQuestionIndex];
-  hintBox.innerHTML = `📞 Friend thinks the answer is: <b>${q.correct_answer}</b>`;
-};
-
-// Audience Vote
-document.getElementById("audienceBtn").onclick = () => {
-  if (usedAudience) return;
-  usedAudience = true;
-
-  const q = questions[currentQuestionIndex];
-  hintBox.innerHTML = `
-📊 Audience Vote:<br>
-${q.correct_answer}: <b>65%</b><br>
-Others: <b>35%</b>
-`;
+  hintBox.innerHTML = `📞 Friend says: <b>${q.correct_answer}</b>`;
 };
