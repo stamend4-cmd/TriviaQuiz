@@ -96,6 +96,152 @@
   <audio id="tick-sound" src="https://raw.githubusercontent.com/divinegrapx/quiz-app/main/tick.mp3"></audio>
 
 </div>
-<script src="script.js"></script>
+
+<!-- SCRIPT: Full Quiz Logic + Lifelines + Timer + Money Ladder -->
+<script>
+let questions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let timerInterval;
+let timerDuration = 30; // seconds
+let selectedCategory = 'science';
+let questionCount = 10;
+
+function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+async function fetchQuestions(category, count) {
+  questions = [];
+  // OpenTDB
+  try {
+    const otResp = await fetch(`https://opentdb.com/api.php?amount=${Math.floor(count/3)}&category=9&type=multiple`);
+    const otData = await otResp.json();
+    questions.push(...otData.results.map(q => ({
+      question: q.question,
+      correct: q.correct_answer,
+      answers: shuffle([...q.incorrect_answers, q.correct_answer])
+    })));
+  } catch (e) { console.error('OpenTDB failed', e); }
+  // Trivia API
+  try {
+    const tResp = await fetch(`https://the-trivia-api.com/api/questions?categories=${category}&limit=${Math.floor(count/3)}`);
+    const tData = await tResp.json();
+    questions.push(...tData.map(q => ({
+      question: q.question,
+      correct: q.correctAnswer,
+      answers: shuffle([...q.incorrectAnswers, q.correctAnswer])
+    })));
+  } catch (e) { console.error('Trivia API failed', e); }
+  // QuizAPI.io
+  try {
+    const quizAPIKey = 'Wh9Plnz7rOMzEpgZsjHIomRe6nL4TKiB6VQxOk08';
+    const qResp = await fetch(`https://quizapi.io/api/v1/questions?apiKey=${quizAPIKey}&category=${category}&limit=${Math.floor(count/3)}`);
+    const qData = await qResp.json();
+    qData.forEach(q => {
+      let answers = [];
+      for (let key in q.answers) if (q.answers[key]) answers.push(q.answers[key]);
+      questions.push({ question: q.question, correct: q.correct_answer, answers: shuffle(answers) });
+    });
+  } catch (e) { console.error('QuizAPI.io failed', e); }
+  questions = shuffle(questions).slice(0, count);
+  console.log('Loaded questions:', questions);
+  showQuestion();
+}
+
+const quizDiv = document.getElementById('quiz');
+const moneyList = document.getElementById('money-list');
+const timerText = document.getElementById('timer-text');
+const timerCircle = document.querySelector('#timer-svg circle');
+const correctSound = document.getElementById('correct-sound');
+const wrongSound = document.getElementById('wrong-sound');
+const tickSound = document.getElementById('tick-sound');
+
+function startQuiz() {
+  selectedCategory = document.getElementById('categorySelect').value;
+  questionCount = parseInt(document.getElementById('questionCount').value);
+  document.getElementById('authDiv').style.display = 'none';
+  document.getElementById('categoryDiv').style.display = 'none';
+  document.getElementById('quiz-container').style.display = 'block';
+  fetchQuestions(selectedCategory, questionCount);
+  buildMoneyLadder();
+}
+
+function showQuestion() {
+  clearInterval(timerInterval);
+  if (currentQuestionIndex >= questions.length) return alert("Quiz Finished! Score: " + score);
+  const q = questions[currentQuestionIndex];
+  quizDiv.innerHTML = `<h3>${q.question}</h3>` + q.answers.map(a => `<button class="option-btn">${a}</button>`).join('');
+  document.querySelectorAll('.option-btn').forEach(btn => { btn.onclick = () => checkAnswer(btn, q.correct); });
+  startTimer();
+}
+
+function checkAnswer(btn, correctAnswer) {
+  clearInterval(timerInterval);
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(b => { b.disabled = true; if (b.textContent === correctAnswer) b.classList.add('correct'); });
+  if (btn.textContent === correctAnswer) { btn.classList.add('correct'); correctSound.play(); score++; highlightMoney(); }
+  else { btn.classList.add('wrong'); wrongSound.play(); }
+  setTimeout(() => { currentQuestionIndex++; showQuestion(); }, 1200);
+}
+
+function startTimer() {
+  let time = timerDuration;
+  timerText.textContent = time + 's';
+  timerCircle.style.stroke = '#00ff00';
+  timerInterval = setInterval(() => {
+    time--;
+    timerText.textContent = time + 's';
+    const offset = 220 - (220 * time / timerDuration);
+    timerCircle.style.strokeDasharray = `220`;
+    timerCircle.style.strokeDashoffset = offset;
+    if (time <= 5) tickSound.play();
+    if (time <= 0) {
+      clearInterval(timerInterval);
+      document.querySelectorAll('.option-btn').forEach(b => { if (b.textContent === questions[currentQuestionIndex].correct) b.classList.add('correct'); b.disabled = true; });
+      setTimeout(() => { currentQuestionIndex++; showQuestion(); }, 1200);
+    }
+  }, 1000);
+}
+
+function buildMoneyLadder() {
+  moneyList.innerHTML = '';
+  for (let i = questionCount; i >= 1; i--) {
+    const li = document.createElement('li');
+    li.textContent = `$${i*100}`;
+    if (i === questionCount) li.classList.add('current');
+    moneyList.appendChild(li);
+  }
+}
+
+function highlightMoney() {
+  const items = moneyList.querySelectorAll('li');
+  items.forEach((li, index) => li.classList.remove('current'));
+  if (currentQuestionIndex < items.length) items[items.length - 1 - currentQuestionIndex].classList.add('current');
+}
+
+// Lifelines
+document.getElementById('fiftyBtn').onclick = () => {
+  const q = questions[currentQuestionIndex];
+  const buttons = document.querySelectorAll('.option-btn');
+  let removed = 0;
+  buttons.forEach(b => { if (b.textContent !== q.correct && removed < 2) { b.disabled = true; b.style.opacity = 0.4; removed++; } });
+};
+document.getElementById('callBtn').onclick = () => {
+  const q = questions[currentQuestionIndex];
+  alert(`Call a friend suggestion: "${q.correct}"`);
+};
+document.getElementById('audienceBtn').onclick = () => {
+  const q = questions[currentQuestionIndex];
+  const buttons = document.querySelectorAll('.option-btn');
+  const correctIdx = [...buttons].findIndex(b => b.textContent === q.correct);
+  buttons.forEach((b, i) => {
+    const percent = i === correctIdx ? Math.floor(Math.random()*40+50) : Math.floor(Math.random()*50);
+    b.textContent += ` (${percent}%)`;
+  });
+};
+
+// Start button
+document.getElementById('startBtn').onclick = startQuiz;
+</script>
+
 </body>
 </html>
