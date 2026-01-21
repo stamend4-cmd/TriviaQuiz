@@ -1,184 +1,137 @@
-// ================== VARIABLES ==================
 let questions = [];
 let currentQuestionIndex = 0;
+let score = 0;
 let timerDuration = 30; // seconds
 let timerInterval;
-let moneyList = [100,200,300,500,1000,2000,4000,8000,16000,32000,64000,125000,250000,500000,1000000];
-let usedFifty = false;
-let usedCall = false;
-let usedAudience = false;
+
+// ================== UTILITY ==================
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
 
 // ================== FETCH QUESTIONS ==================
-async function fetchQuestions(amount = 10) {
-    try {
-        const resp = await fetch(`https://opentdb.com/api.php?amount=${amount}&type=multiple`);
-        const data = await resp.json();
-        questions = data.results.map(q => ({
-            question: decodeHTML(q.question),
-            correct: decodeHTML(q.correct_answer),
-            answers: shuffle([q.correct_answer, ...q.incorrect_answers].map(a=>decodeHTML(a)))
-        }));
-        startQuiz();
-    } catch (e) {
-        alert("Failed to load questions. Check your connection.");
-        console.error(e);
-    }
+async function fetchQuestions(category, count) {
+  questions = [];
+
+  // OpenTDB API
+  try {
+    const resp = await fetch(`https://opentdb.com/api.php?amount=${count}&category=9&type=multiple`);
+    const data = await resp.json();
+    questions = data.results.map((q) => ({
+      question: q.question,
+      correct: q.correct_answer,
+      answers: shuffle([...q.incorrect_answers, q.correct_answer])
+    }));
+  } catch (err) {
+    console.error("OpenTDB fetch error:", err);
+  }
 }
 
-// ================== SHUFFLE UTILITY ==================
-function shuffle(array) {
-    return array.sort(() => Math.random() - 0.5);
-}
-
-// ================== HTML DECODER ==================
-function decodeHTML(html) {
-    var txt = document.createElement("textarea");
-    txt.innerHTML = html;
-    return txt.value;
-}
-
-// ================== START QUIZ ==================
-function startQuiz() {
-    document.getElementById("authDiv").style.display = "none";
-    document.getElementById("quiz-container").style.display = "block";
-    buildMoneyList();
-    showQuestion();
-}
-
-// ================== BUILD MONEY LADDER ==================
-function buildMoneyList() {
-    const ul = document.getElementById("money-list");
-    ul.innerHTML = "";
-    moneyList.slice().reverse().forEach((amt,i)=>{
-        let li = document.createElement("li");
-        li.textContent = `$${amt}`;
-        if(i === 0) li.classList.add("current");
-        ul.appendChild(li);
-    });
-}
-
-// ================== SHOW QUESTION ==================
+// ================== RENDER QUIZ ==================
 function showQuestion() {
-    clearInterval(timerInterval);
-    const q = questions[currentQuestionIndex];
-    document.getElementById("question-number").textContent = `Question ${currentQuestionIndex+1}`;
-    document.getElementById("question-text").textContent = q.question;
+  if (currentQuestionIndex >= questions.length) {
+    alert(`Quiz finished! Score: ${score}/${questions.length}`);
+    return;
+  }
 
-    const ansDiv = document.getElementById("answers");
-    ansDiv.innerHTML = "";
-    q.answers.forEach(a=>{
-        const btn = document.createElement("button");
-        btn.textContent = a;
-        btn.className = "option-btn";
-        btn.onclick = () => checkAnswer(btn, q.correct);
-        ansDiv.appendChild(btn);
-    });
+  const quiz = document.getElementById("quiz");
+  const q = questions[currentQuestionIndex];
 
-    startTimer();
-    updateMoneyHighlight();
+  quiz.innerHTML = `
+    <h2>Question ${currentQuestionIndex + 1} / ${questions.length}</h2>
+    <p id="question-text">${q.question}</p>
+    <div id="answers"></div>
+  `;
+
+  const answersDiv = document.getElementById("answers");
+  q.answers.forEach((ans) => {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.textContent = ans;
+    btn.onclick = () => selectAnswer(btn, q.correct);
+    answersDiv.appendChild(btn);
+  });
+
+  updateMoneyLadder();
+  startTimer();
 }
 
-// ================== CHECK ANSWER ==================
-function checkAnswer(btn, correct) {
-    stopTimer();
-    const allBtns = document.querySelectorAll(".option-btn");
-    allBtns.forEach(b=>b.disabled=true);
+// ================== SELECT ANSWER ==================
+function selectAnswer(btn, correctAnswer) {
+  stopTimer();
 
-    if(btn.textContent === correct){
-        btn.style.backgroundColor = "#00ff00"; // green
-        scoreUp();
-        setTimeout(nextQuestion, 1000);
-    } else {
-        btn.style.backgroundColor = "#ff0000"; // red
-        btn.classList.add("shake");
-        // Highlight correct answer
-        allBtns.forEach(b=>{
-            if(b.textContent === correct) b.style.backgroundColor = "#00ff00";
-        });
-        setTimeout(endQuiz, 1500);
+  const buttons = document.querySelectorAll(".option-btn");
+  buttons.forEach(b => b.disabled = true);
+
+  if (btn.textContent === correctAnswer) {
+    btn.style.backgroundColor = "#00ff00";
+    btn.style.color = "#000";
+    score++;
+  } else {
+    btn.style.backgroundColor = "#ff0000";
+    btn.style.color = "#fff";
+    btn.classList.add("shake");
+    // highlight correct answer
+    buttons.forEach(b => {
+      if (b.textContent === correctAnswer) {
+        b.style.backgroundColor = "#00ff00";
+        b.style.color = "#000";
+      }
+    });
+  }
+
+  currentQuestionIndex++;
+  setTimeout(showQuestion, 1500);
+}
+
+// ================== MONEY LADDER ==================
+function updateMoneyLadder() {
+  const moneyList = document.getElementById("money-list");
+  moneyList.innerHTML = "";
+  const amounts = Array.from({length: questions.length}, (_, i) => (i+1)*100);
+  amounts.reverse().forEach((amt, i) => {
+    const li = document.createElement("li");
+    li.textContent = `$${amt}`;
+    if (i === questions.length - currentQuestionIndex - 1) {
+      li.classList.add("current");
     }
+    moneyList.appendChild(li);
+  });
 }
 
 // ================== TIMER ==================
 function startTimer() {
-    let timeLeft = timerDuration;
-    const text = document.getElementById("timer-text");
-    const circle = document.querySelector("#timer-svg circle");
-    const radius = circle.r.baseVal.value;
-    const circumference = 2 * Math.PI * radius;
-    circle.style.strokeDasharray = circumference;
-    circle.style.strokeDashoffset = 0;
+  const timerText = document.getElementById("timer-text");
+  const timerCircle = document.querySelector("#timer-svg circle");
+  let timeLeft = timerDuration;
+  const fullDash = 219.911; // 2π*35
+  timerCircle.style.strokeDashoffset = 0;
 
-    text.textContent = `${timeLeft}s`;
-    timerInterval = setInterval(()=>{
-        timeLeft--;
-        text.textContent = `${timeLeft}s`;
-        circle.style.strokeDashoffset = circumference * (1 - timeLeft/timerDuration);
-        if(timeLeft<=0){
-            clearInterval(timerInterval);
-            // Highlight correct answer
-            document.querySelectorAll(".option-btn").forEach(b=>{
-                if(b.textContent === questions[currentQuestionIndex].correct) b.style.backgroundColor = "#00ff00";
-                b.disabled=true;
-            });
-            setTimeout(endQuiz,1500);
-        }
-    },1000);
+  timerText.textContent = `${timeLeft}s`;
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerText.textContent = `${timeLeft}s`;
+    const offset = fullDash * (1 - timeLeft / timerDuration);
+    timerCircle.style.strokeDashoffset = offset;
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      selectAnswer({textContent:""}, questions[currentQuestionIndex].correct);
+    }
+  }, 1000);
 }
 
 function stopTimer() {
-    clearInterval(timerInterval);
+  clearInterval(timerInterval);
 }
 
-// ================== NEXT QUESTION ==================
-function nextQuestion() {
-    currentQuestionIndex++;
-    if(currentQuestionIndex < questions.length){
-        showQuestion();
-    } else {
-        alert("🎉 Quiz Finished!");
-    }
-}
-
-// ================== MONEY LADDER HIGHLIGHT ==================
-function updateMoneyHighlight() {
-    const lis = document.querySelectorAll("#money-list li");
-    lis.forEach((li,i)=>{
-        li.classList.remove("current");
-        if(i === (moneyList.length - 1 - currentQuestionIndex)) li.classList.add("current");
-    });
-}
-
-function scoreUp() {
-    // Could add sound or animation here
-}
-
-// ================== LIFELINES ==================
-document.getElementById("fiftyBtn").onclick = function(){
-    if(usedFifty) return;
-    usedFifty=true;
-    const q = questions[currentQuestionIndex];
-    const allBtns = Array.from(document.querySelectorAll(".option-btn"));
-    const wrongBtns = allBtns.filter(b=>b.textContent !== q.correct);
-    shuffle(wrongBtns).slice(0,2).forEach(b=>b.disabled=true);
-}
-
-document.getElementById("callBtn").onclick = function(){
-    if(usedCall) return;
-    usedCall = true;
-    alert("📞 Call a Friend suggests: " + questions[currentQuestionIndex].correct);
-}
-
-document.getElementById("audienceBtn").onclick = function(){
-    if(usedAudience) return;
-    usedAudience = true;
-    const msg = "👥 Audience Vote:\n";
-    const q = questions[currentQuestionIndex];
-    const votes = [q.correct, ...q.answers.filter(a=>a!==q.correct)];
-    alert(msg + "Most people choose: " + votes[0]);
-}
-
-// ================== START BUTTON ==================
-document.getElementById("startBtn").onclick = function(){
-    fetchQuestions(10); // You can set default 10 questions
-}
+// ================== INIT ==================
+document.getElementById("startBtn").addEventListener("click", async () => {
+  const category = document.getElementById("categorySelect").value;
+  const count = parseInt(document.getElementById("questionCount").value);
+  await fetchQuestions(category, count);
+  document.getElementById("categoryDiv").style.display = "none";
+  document.getElementById("quiz-container").style.display = "block";
+  showQuestion();
+});
