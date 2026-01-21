@@ -1,8 +1,11 @@
 let questions = [];
 let currentQuestionIndex = 0;
 let score = 0;
-let timerDuration = 30; // seconds
+let timerDuration = 30;
 let timerInterval;
+let usedFifty = false;
+let usedCall = false;
+let usedAudience = false;
 
 // ================== UTILITY ==================
 function shuffle(array) {
@@ -12,8 +15,6 @@ function shuffle(array) {
 // ================== FETCH QUESTIONS ==================
 async function fetchQuestions(category, count) {
   questions = [];
-
-  // OpenTDB API
   try {
     const resp = await fetch(`https://opentdb.com/api.php?amount=${count}&category=9&type=multiple`);
     const data = await resp.json();
@@ -52,6 +53,7 @@ function showQuestion() {
     answersDiv.appendChild(btn);
   });
 
+  document.getElementById("lifelines").style.display = "flex";
   updateMoneyLadder();
   startTimer();
 }
@@ -59,7 +61,6 @@ function showQuestion() {
 // ================== SELECT ANSWER ==================
 function selectAnswer(btn, correctAnswer) {
   stopTimer();
-
   const buttons = document.querySelectorAll(".option-btn");
   buttons.forEach(b => b.disabled = true);
 
@@ -71,7 +72,6 @@ function selectAnswer(btn, correctAnswer) {
     btn.style.backgroundColor = "#ff0000";
     btn.style.color = "#fff";
     btn.classList.add("shake");
-    // highlight correct answer
     buttons.forEach(b => {
       if (b.textContent === correctAnswer) {
         b.style.backgroundColor = "#00ff00";
@@ -104,9 +104,8 @@ function startTimer() {
   const timerText = document.getElementById("timer-text");
   const timerCircle = document.querySelector("#timer-svg circle");
   let timeLeft = timerDuration;
-  const fullDash = 219.911; // 2π*35
+  const fullDash = 219.911;
   timerCircle.style.strokeDashoffset = 0;
-
   timerText.textContent = `${timeLeft}s`;
 
   timerInterval = setInterval(() => {
@@ -125,6 +124,32 @@ function startTimer() {
 function stopTimer() {
   clearInterval(timerInterval);
 }
+
+// ================== LIFELINES ==================
+document.getElementById("fiftyBtn").addEventListener("click", () => {
+  if (usedFifty) return;
+  usedFifty = true;
+  const q = questions[currentQuestionIndex];
+  const wrongBtns = Array.from(document.querySelectorAll(".option-btn"))
+    .filter(b => b.textContent !== q.correct);
+  shuffle(wrongBtns).slice(0,2).forEach(b => b.style.visibility = "hidden");
+});
+
+document.getElementById("callBtn").addEventListener("click", () => {
+  if (usedCall) return;
+  usedCall = true;
+  const q = questions[currentQuestionIndex];
+  alert(`📞 Your friend thinks the answer might be: "${q.correct}"`);
+});
+
+document.getElementById("audienceBtn").addEventListener("click", () => {
+  if (usedAudience) return;
+  usedAudience = true;
+  const q = questions[currentQuestionIndex];
+  const buttons = Array.from(document.querySelectorAll(".option-btn"));
+  const percentages = buttons.map(b => b.textContent === q.correct ? 60 : 13);
+  alert(`👥 Audience vote:\n${buttons.map((b,i) => `${b.textContent}: ${percentages[i]}%`).join("\n")}`);
+});
 
 // ================== INIT ==================
 document.getElementById("startBtn").addEventListener("click", async () => {
