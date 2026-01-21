@@ -1,196 +1,184 @@
-// -------------------- GLOBAL VARIABLES --------------------
+// ================== VARIABLES ==================
 let questions = [];
 let currentQuestionIndex = 0;
-let score = 0;
 let timerDuration = 30; // seconds
 let timerInterval;
+let moneyList = [100,200,300,500,1000,2000,4000,8000,16000,32000,64000,125000,250000,500000,1000000];
+let usedFifty = false;
+let usedCall = false;
+let usedAudience = false;
 
-const quizDiv = document.getElementById("quiz");
-const moneyList = document.getElementById("money-list");
-const timerText = document.getElementById("timer-text");
-const timerCircle = document.querySelector("#timer-svg circle");
-const hintBox = document.getElementById("hint-box");
-const fiftyBtn = document.getElementById("fiftyBtn");
-const callBtn = document.getElementById("callBtn");
-const audienceBtn = document.getElementById("audienceBtn");
-
-const correctSound = document.getElementById("correct-sound");
-const wrongSound = document.getElementById("wrong-sound");
-const tickSound = document.getElementById("tick-sound");
-
-// Money ladder levels
-const moneyLevels = ["$100","$200","$300","$500","$1,000","$2,000","$4,000","$8,000","$16,000","$32,000","$64,000","$125,000","$250,000","$500,000","$1,000,000"];
-
-// -------------------- UTILITY --------------------
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
-
-// -------------------- FETCH QUESTIONS --------------------
-async function fetchQuestions(category, count) {
-  questions = [];
-
-  // 1️⃣ OpenTDB
-  try {
-    const otResp = await fetch(`https://opentdb.com/api.php?amount=${Math.floor(count/3)}&category=9&type=multiple`);
-    const otData = await otResp.json();
-    questions.push(...otData.results.map(q => ({
-      question: q.question,
-      correct: q.correct_answer,
-      answers: shuffle([...q.incorrect_answers, q.correct_answer])
-    })));
-  } catch (e) { console.error('OpenTDB failed', e); }
-
-  // 2️⃣ Trivia API
-  try {
-    const tResp = await fetch(`https://the-trivia-api.com/api/questions?categories=${category}&limit=${Math.floor(count/3)}`);
-    const tData = await tResp.json();
-    questions.push(...tData.map(q => ({
-      question: q.question,
-      correct: q.correctAnswer,
-      answers: shuffle([...q.incorrectAnswers, q.correctAnswer])
-    })));
-  } catch (e) { console.error('Trivia API failed', e); }
-
-  // 3️⃣ QuizAPI.io
-  try {
-    const quizAPIKey = 'Wh9Plnz7rOMzEpgZsjHIomRe6nL4TKiB6VQxOk08';
-    const qResp = await fetch(`https://quizapi.io/api/v1/questions?apiKey=${quizAPIKey}&category=${category}&limit=${Math.floor(count/3)}`);
-    const qData = await qResp.json();
-    qData.forEach(q => {
-      let answers = [];
-      for (let key in q.answers) {
-        if (q.answers[key]) answers.push(q.answers[key]);
-      }
-      questions.push({
-        question: q.question,
-        correct: q.correct_answer,
-        answers: shuffle(answers)
-      });
-    });
-  } catch (e) { console.error('QuizAPI.io failed', e); }
-
-  questions = shuffle(questions).slice(0, count);
-  console.log('Loaded questions:', questions);
-  buildMoneyLadder();
-}
-
-// -------------------- BUILD MONEY LADDER --------------------
-function buildMoneyLadder() {
-  moneyList.innerHTML = "";
-  moneyLevels.slice(-questions.length).forEach((level, i) => {
-    const li = document.createElement("li");
-    li.textContent = `${questions.length - i}. ${level}`;
-    if (i === 0) li.classList.add("active");
-    moneyList.appendChild(li);
-  });
-}
-
-// -------------------- SHOW QUESTION --------------------
-function showQuestion() {
-  clearInterval(timerInterval);
-  if (currentQuestionIndex >= questions.length) {
-    alert(`🎉 Quiz finished! Your score: ${score}`);
-    return;
-  }
-
-  const q = questions[currentQuestionIndex];
-  quizDiv.innerHTML = `<h3>${currentQuestionIndex + 1}. ${q.question}</h3>`;
-
-  q.answers.forEach(ans => {
-    const btn = document.createElement("button");
-    btn.classList.add("answer-btn");
-    btn.textContent = ans;
-    btn.addEventListener("click", () => checkAnswer(btn, ans));
-    quizDiv.appendChild(btn);
-  });
-
-  startTimer();
-  updateMoneyLadder();
-}
-
-// -------------------- CHECK ANSWER --------------------
-function checkAnswer(btn, selected) {
-  const q = questions[currentQuestionIndex];
-  const buttons = document.querySelectorAll(".answer-btn");
-  buttons.forEach(b => {
-    b.disabled = true;
-    if (b.textContent === q.correct) b.classList.add("correct");
-  });
-
-  if (selected === q.correct) {
-    btn.classList.add("correct");
-    correctSound.play();
-    score++;
-  } else {
-    btn.classList.add("wrong");
-    wrongSound.play();
-  }
-
-  clearInterval(timerInterval);
-  currentQuestionIndex++;
-  setTimeout(showQuestion, 1500);
-}
-
-// -------------------- TIMER --------------------
-function startTimer() {
-  let time = timerDuration;
-  timerText.textContent = `${time}s`;
-  timerCircle.style.stroke = "#00ff00";
-
-  timerInterval = setInterval(() => {
-    time--;
-    timerText.textContent = `${time}s`;
-    const pct = (time / timerDuration) * 100;
-    timerCircle.style.strokeDasharray = `219 ${219}`;
-    timerCircle.style.strokeDashoffset = 219 - (219 * pct / 100);
-
-    if (time <= 5) timerCircle.style.stroke = "#ff0";
-    if (time <= 0) {
-      clearInterval(timerInterval);
-      checkAnswer({classList: {add: ()=>{}}}, ""); // auto fail
-      currentQuestionIndex++;
-      setTimeout(showQuestion, 500);
+// ================== FETCH QUESTIONS ==================
+async function fetchQuestions(amount = 10) {
+    try {
+        const resp = await fetch(`https://opentdb.com/api.php?amount=${amount}&type=multiple`);
+        const data = await resp.json();
+        questions = data.results.map(q => ({
+            question: decodeHTML(q.question),
+            correct: decodeHTML(q.correct_answer),
+            answers: shuffle([q.correct_answer, ...q.incorrect_answers].map(a=>decodeHTML(a)))
+        }));
+        startQuiz();
+    } catch (e) {
+        alert("Failed to load questions. Check your connection.");
+        console.error(e);
     }
-  }, 1000);
 }
 
-// -------------------- MONEY LADDER UPDATE --------------------
-function updateMoneyLadder() {
-  const lis = moneyList.querySelectorAll("li");
-  lis.forEach((li, i) => li.classList.remove("active"));
-  lis[questions.length - currentQuestionIndex - 1]?.classList.add("active");
+// ================== SHUFFLE UTILITY ==================
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
 }
 
-// -------------------- LIFELINES --------------------
-fiftyBtn.addEventListener("click", () => {
-  const q = questions[currentQuestionIndex];
-  const buttons = Array.from(document.querySelectorAll(".answer-btn"));
-  let wrongs = buttons.filter(b => b.textContent !== q.correct);
-  shuffle(wrongs).slice(0, 2).forEach(b => b.disabled = true);
-  hintBox.textContent = "50:50 used!";
-});
-
-callBtn.addEventListener("click", () => {
-  const q = questions[currentQuestionIndex];
-  hintBox.textContent = `Call a Friend suggests: "${q.correct}"`;
-});
-
-audienceBtn.addEventListener("click", () => {
-  const q = questions[currentQuestionIndex];
-  const buttons = document.querySelectorAll(".answer-btn");
-  buttons.forEach(b => b.textContent += ` (${Math.floor(Math.random()*40+30)}%)`);
-  hintBox.textContent = "Audience voted!";
-});
-
-// -------------------- INIT QUIZ --------------------
-async function startQuiz(category, count) {
-  await fetchQuestions(category, count);
-  currentQuestionIndex = 0;
-  score = 0;
-  document.getElementById("quiz-container").style.display = "block";
-  showQuestion();
+// ================== HTML DECODER ==================
+function decodeHTML(html) {
+    var txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
 }
 
-// Example usage
-// startQuiz('science', 10);
+// ================== START QUIZ ==================
+function startQuiz() {
+    document.getElementById("authDiv").style.display = "none";
+    document.getElementById("quiz-container").style.display = "block";
+    buildMoneyList();
+    showQuestion();
+}
+
+// ================== BUILD MONEY LADDER ==================
+function buildMoneyList() {
+    const ul = document.getElementById("money-list");
+    ul.innerHTML = "";
+    moneyList.slice().reverse().forEach((amt,i)=>{
+        let li = document.createElement("li");
+        li.textContent = `$${amt}`;
+        if(i === 0) li.classList.add("current");
+        ul.appendChild(li);
+    });
+}
+
+// ================== SHOW QUESTION ==================
+function showQuestion() {
+    clearInterval(timerInterval);
+    const q = questions[currentQuestionIndex];
+    document.getElementById("question-number").textContent = `Question ${currentQuestionIndex+1}`;
+    document.getElementById("question-text").textContent = q.question;
+
+    const ansDiv = document.getElementById("answers");
+    ansDiv.innerHTML = "";
+    q.answers.forEach(a=>{
+        const btn = document.createElement("button");
+        btn.textContent = a;
+        btn.className = "option-btn";
+        btn.onclick = () => checkAnswer(btn, q.correct);
+        ansDiv.appendChild(btn);
+    });
+
+    startTimer();
+    updateMoneyHighlight();
+}
+
+// ================== CHECK ANSWER ==================
+function checkAnswer(btn, correct) {
+    stopTimer();
+    const allBtns = document.querySelectorAll(".option-btn");
+    allBtns.forEach(b=>b.disabled=true);
+
+    if(btn.textContent === correct){
+        btn.style.backgroundColor = "#00ff00"; // green
+        scoreUp();
+        setTimeout(nextQuestion, 1000);
+    } else {
+        btn.style.backgroundColor = "#ff0000"; // red
+        btn.classList.add("shake");
+        // Highlight correct answer
+        allBtns.forEach(b=>{
+            if(b.textContent === correct) b.style.backgroundColor = "#00ff00";
+        });
+        setTimeout(endQuiz, 1500);
+    }
+}
+
+// ================== TIMER ==================
+function startTimer() {
+    let timeLeft = timerDuration;
+    const text = document.getElementById("timer-text");
+    const circle = document.querySelector("#timer-svg circle");
+    const radius = circle.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
+    circle.style.strokeDasharray = circumference;
+    circle.style.strokeDashoffset = 0;
+
+    text.textContent = `${timeLeft}s`;
+    timerInterval = setInterval(()=>{
+        timeLeft--;
+        text.textContent = `${timeLeft}s`;
+        circle.style.strokeDashoffset = circumference * (1 - timeLeft/timerDuration);
+        if(timeLeft<=0){
+            clearInterval(timerInterval);
+            // Highlight correct answer
+            document.querySelectorAll(".option-btn").forEach(b=>{
+                if(b.textContent === questions[currentQuestionIndex].correct) b.style.backgroundColor = "#00ff00";
+                b.disabled=true;
+            });
+            setTimeout(endQuiz,1500);
+        }
+    },1000);
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+}
+
+// ================== NEXT QUESTION ==================
+function nextQuestion() {
+    currentQuestionIndex++;
+    if(currentQuestionIndex < questions.length){
+        showQuestion();
+    } else {
+        alert("🎉 Quiz Finished!");
+    }
+}
+
+// ================== MONEY LADDER HIGHLIGHT ==================
+function updateMoneyHighlight() {
+    const lis = document.querySelectorAll("#money-list li");
+    lis.forEach((li,i)=>{
+        li.classList.remove("current");
+        if(i === (moneyList.length - 1 - currentQuestionIndex)) li.classList.add("current");
+    });
+}
+
+function scoreUp() {
+    // Could add sound or animation here
+}
+
+// ================== LIFELINES ==================
+document.getElementById("fiftyBtn").onclick = function(){
+    if(usedFifty) return;
+    usedFifty=true;
+    const q = questions[currentQuestionIndex];
+    const allBtns = Array.from(document.querySelectorAll(".option-btn"));
+    const wrongBtns = allBtns.filter(b=>b.textContent !== q.correct);
+    shuffle(wrongBtns).slice(0,2).forEach(b=>b.disabled=true);
+}
+
+document.getElementById("callBtn").onclick = function(){
+    if(usedCall) return;
+    usedCall = true;
+    alert("📞 Call a Friend suggests: " + questions[currentQuestionIndex].correct);
+}
+
+document.getElementById("audienceBtn").onclick = function(){
+    if(usedAudience) return;
+    usedAudience = true;
+    const msg = "👥 Audience Vote:\n";
+    const q = questions[currentQuestionIndex];
+    const votes = [q.correct, ...q.answers.filter(a=>a!==q.correct)];
+    alert(msg + "Most people choose: " + votes[0]);
+}
+
+// ================== START BUTTON ==================
+document.getElementById("startBtn").onclick = function(){
+    fetchQuestions(10); // You can set default 10 questions
+}
