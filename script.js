@@ -1,260 +1,228 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // ---------------- FIREBASE INIT ----------------
-  const firebaseConfig = {
-    apiKey: "AIzaSyDCCBKiQio6iPKm36MQdGqb9LzTOxbOfiE",
-    authDomain: "triviaquiz-2579b.firebaseapp.com",
-    projectId: "triviaquiz-2579b",
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+// ======================= Firebase Init =======================
+const firebaseConfig = {
+  apiKey: "AIzaSyDCCBKiQio6iPKm36MQdGqb9LzTOxbOfiE",
+  authDomain: "triviaquiz-2579b.firebaseapp.com",
+  projectId: "triviaquiz-2579b"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-  // ---------------- SELECTORS ----------------
-  const googleLoginBtn = document.querySelector("#googleLoginBtn");
-  const emailRegisterBtn = document.querySelector("#emailRegisterBtn");
-  const authDiv = document.querySelector("#authDiv");
-  const emailDiv = document.querySelector("#emailDiv");
-  const logoutDiv = document.querySelector("#logoutDiv");
-  const logoutBtn = document.querySelector("#logoutBtn");
-  const categoryDiv = document.querySelector("#categoryDiv");
-  const startBtn = document.querySelector("#startBtn");
-  const quizContainer = document.querySelector("#quiz-container");
-  const quizEl = document.querySelector("#quiz");
-  const moneyList = document.querySelector("#money-list");
-  const timerText = document.querySelector("#timer-text");
-  const timerCircle = document.querySelector("#timer-svg circle");
-  const lifelinesDiv = document.querySelector("#lifelines");
-  const fiftyBtn = document.querySelector("#fiftyBtn");
-  const callBtn = document.querySelector("#callBtn");
-  const audienceBtn = document.querySelector("#audienceBtn");
-  const hintBox = document.querySelector("#hint-box");
-  const correctSound = document.querySelector("#correct-sound");
-  const wrongSound = document.querySelector("#wrong-sound");
-  const tickSound = document.querySelector("#tick-sound");
+// ======================= DOM Elements =======================
+const authDiv = document.getElementById('authDiv');
+const emailDiv = document.getElementById('emailDiv');
+const logoutDiv = document.getElementById('logoutDiv');
+const categoryDiv = document.getElementById('categoryDiv');
+const quizContainer = document.getElementById('quiz-container');
+const quizEl = document.getElementById('quiz');
+const moneyListEl = document.getElementById('money-list');
+const startBtn = document.getElementById('startBtn');
+const categorySelect = document.getElementById('categorySelect');
+const questionCountSelect = document.getElementById('questionCount');
 
-  // ---------------- GLOBAL VARIABLES ----------------
-  let questions = [];
-  let currentQuestionIndex = 0;
-  let timerInterval = null;
-  let timerSeconds = 30;
-  let currentMoneyIndex = 0;
+const fiftyBtn = document.getElementById('fiftyBtn');
+const callBtn = document.getElementById('callBtn');
+const audienceBtn = document.getElementById('audienceBtn');
 
-  const moneyValues = [
-    "$100", "$200", "$300", "$500", "$1,000",
-    "$2,000", "$4,000", "$8,000", "$16,000", "$32,000",
-    "$64,000", "$125,000", "$250,000", "$500,000", "$1,000,000"
-  ];
+const timerText = document.getElementById('timer-text');
+const timerSvg = document.querySelector('#timer-svg circle');
 
-  // ---------------- AUTH ----------------
-  const googleProvider = new firebase.auth.GoogleAuthProvider();
+const hintBox = document.getElementById('hint-box');
+const correctSound = document.getElementById('correct-sound');
+const wrongSound = document.getElementById('wrong-sound');
+const tickSound = document.getElementById('tick-sound');
 
-  googleLoginBtn.addEventListener("click", () => {
-    auth.signInWithPopup(googleProvider)
-      .then(() => showCategory())
-      .catch(console.error);
+// ======================= Global Variables =======================
+let questions = [];
+let currentQuestionIndex = 0;
+let currentTimer = 30;
+let timerInterval;
+let usedFifty = false;
+let usedCall = false;
+let usedAudience = false;
+
+// ======================= Event Listeners =======================
+startBtn.addEventListener('click', startQuiz);
+fiftyBtn.addEventListener('click', useFifty);
+callBtn.addEventListener('click', useCall);
+audienceBtn.addEventListener('click', useAudience);
+
+// ======================= QUIZ FUNCTIONS =======================
+async function startQuiz() {
+  const category = categorySelect.value;
+  const numQuestions = parseInt(questionCountSelect.value);
+
+  quizContainer.style.display = 'block';
+  categoryDiv.style.display = 'none';
+  currentQuestionIndex = 0;
+  usedFifty = false; usedCall = false; usedAudience = false;
+  fiftyBtn.disabled = false; callBtn.disabled = false; audienceBtn.disabled = false;
+  moneyListEl.innerHTML = generateMoneyLadder(numQuestions);
+
+  // Fetch questions from all sources
+  questions = await fetchAllQuestions(category, numQuestions);
+  showQuestion();
+}
+
+async function fetchAllQuestions(category, limit) {
+  try {
+    // --- OpenTDB ---
+    const opentdbCatMap = {
+      science: 17, history: 23, geography: 22, music: 12, film_and_tv: 11, sports:21, food_and_drink: 14, general_knowledge:9
+    };
+    const opentdbUrl = `https://opentdb.com/api.php?amount=${limit}&category=${opentdbCatMap[category] || 9}&type=multiple`;
+    const opentdbRes = await fetch(opentdbUrl);
+    const opentdbData = await opentdbRes.json();
+
+    // --- Trivia API ---
+    const triviaApiUrl = `https://the-trivia-api.com/api/questions?categories=${category}&limit=${limit}`;
+    const triviaRes = await fetch(triviaApiUrl);
+    const triviaData = await triviaRes.json();
+
+    // --- QuizAPI.io ---
+    const quizApiKey = 'YOUR_QUIZAPI_KEY'; // <-- Replace with your free QuizAPI.io key
+    const quizApiUrl = `https://quizapi.io/api/v1/questions?apiKey=${quizApiKey}&limit=${limit}&tags=${category}`;
+    const quizRes = await fetch(quizApiUrl);
+    const quizData = await quizRes.json();
+
+    // Normalize all questions
+    const allQuestions = [];
+
+    // OpenTDB
+    opentdbData.results.forEach(q => {
+      const options = [...q.incorrect_answers, q.correct_answer].sort(() => Math.random() - 0.5);
+      allQuestions.push({question: q.question, options, correct: q.correct_answer});
+    });
+
+    // Trivia API
+    triviaData.forEach(q => {
+      const opts = [...q.incorrectAnswers, q.correctAnswer].sort(() => Math.random() - 0.5);
+      allQuestions.push({question: q.question, options: opts, correct: q.correctAnswer});
+    });
+
+    // QuizAPI.io
+    quizData.forEach(q => {
+      const opts = Object.values(q.answers).filter(a=>a).map(a=>a);
+      allQuestions.push({question: q.question, options: opts, correct: q.correct_answer});
+    });
+
+    // Shuffle all
+    return allQuestions.sort(() => Math.random() - 0.5).slice(0, limit);
+  } catch(err) {
+    console.error(err);
+    alert("Failed to fetch questions. Check your internet connection & API keys.");
+    return [];
+  }
+}
+
+function showQuestion() {
+  if(currentQuestionIndex >= questions.length){
+    alert("🎉 Quiz Complete!");
+    return;
+  }
+  const q = questions[currentQuestionIndex];
+  quizEl.innerHTML = `<h3>${q.question}</h3>`;
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.classList.add('option-btn');
+    btn.textContent = opt;
+    btn.addEventListener('click', () => checkAnswer(btn, q.correct));
+    quizEl.appendChild(btn);
   });
 
-  emailRegisterBtn.addEventListener("click", () => {
-    authDiv.style.display = "none";
-    emailDiv.style.display = "block";
-  });
+  startTimer();
+  highlightMoneyLadder();
+}
 
-  document.querySelector("#emailLoginBtn").addEventListener("click", () => {
-    const email = document.querySelector("#emailInput").value;
-    const password = document.querySelector("#passwordInput").value;
-    auth.signInWithEmailAndPassword(email, password)
-      .then(() => showCategory())
-      .catch(alert);
-  });
+function checkAnswer(btn, correct) {
+  stopTimer();
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(b => b.disabled = true);
 
-  document.querySelector("#emailRegisterSubmitBtn").addEventListener("click", () => {
-    const email = document.querySelector("#emailInput").value;
-    const password = document.querySelector("#passwordInput").value;
-    auth.createUserWithEmailAndPassword(email, password)
-      .then(() => showCategory())
-      .catch(alert);
-  });
-
-  document.querySelector("#emailCancelBtn").addEventListener("click", () => {
-    emailDiv.style.display = "none";
-    authDiv.style.display = "block";
-  });
-
-  logoutBtn.addEventListener("click", () => auth.signOut().then(() => location.reload()));
-
-  auth.onAuthStateChanged(user => {
-    if (user) showCategory();
-    else authDiv.style.display = "block";
-  });
-
-  function showCategory() {
-    authDiv.style.display = "none";
-    emailDiv.style.display = "none";
-    logoutDiv.style.display = "block";
-    categoryDiv.style.display = "block";
+  if(btn.textContent === correct){
+    btn.style.backgroundColor = "#00ff00";
+    correctSound.play();
+  } else {
+    btn.style.backgroundColor = "#ff0000";
+    btn.classList.add('shake');
+    wrongSound.play();
+    // Show correct button
+    buttons.forEach(b => { if(b.textContent===correct) b.style.backgroundColor="#00ff00"; });
   }
 
-  // ---------------- START QUIZ ----------------
-  startBtn.addEventListener("click", async () => {
-    const category = document.querySelector("#categorySelect").value;
-    const questionCount = parseInt(document.querySelector("#questionCount").value);
+  // Update ladder
+  highlightMoneyLadder();
 
-    questions = await fetchQuestions(category, questionCount);
-    if (!questions.length) return alert("No questions found!");
-
-    categoryDiv.style.display = "none";
-    quizContainer.style.display = "block";
-    lifelinesDiv.style.display = "flex";
-
-    currentQuestionIndex = 0;
-    currentMoneyIndex = moneyValues.length - questions.length;
-    showMoneyLadder();
+  // Next question after 2s
+  setTimeout(() => {
+    currentQuestionIndex++;
     showQuestion();
-  });
+  }, 2000);
+}
 
-  async function fetchQuestions(category, count) {
-    try {
-      const snapshot = await db.collection("trivia").where("category", "==", category).limit(count).get();
-      return snapshot.docs.map(doc => doc.data());
-    } catch (e) {
-      console.error(e);
-      alert("Failed to fetch questions from Firebase. Check Firestore rules/API.");
-      return [];
+// ======================= TIMER =======================
+function startTimer() {
+  currentTimer = 30;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    currentTimer--;
+    updateTimerDisplay();
+    tickSound.play();
+    if(currentTimer <= 0){
+      stopTimer();
+      checkAnswer({textContent:''}, questions[currentQuestionIndex].correct); // auto wrong
     }
+  },1000);
+}
+
+function stopTimer(){ clearInterval(timerInterval); }
+
+function updateTimerDisplay(){
+  timerText.textContent = `${currentTimer}s`;
+  const radius = 35;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (currentTimer/30)*circumference;
+  timerSvg.style.strokeDasharray = `${circumference} ${circumference}`;
+  timerSvg.style.strokeDashoffset = offset;
+}
+
+// ======================= MONEY LADDER =======================
+function generateMoneyLadder(count){
+  const amounts = Array.from({length:count}, (_,i)=>`$${(i+1)*100}`);
+  return amounts.reverse().map(a=>`<li>${a}</li>`).join('');
+}
+
+function highlightMoneyLadder(){
+  const items = moneyListEl.querySelectorAll('li');
+  items.forEach((li,i)=>li.style.background='none');
+  if(items[currentQuestionIndex]){
+    items[currentQuestionIndex].style.background = 'linear-gradient(90deg,#f7971e,#ffd200)';
+    items[currentQuestionIndex].style.fontWeight='bold';
   }
+}
 
-  // ---------------- MONEY LADDER ----------------
-  function showMoneyLadder() {
-    moneyList.innerHTML = "";
-    moneyValues.forEach((val, i) => {
-      const li = document.createElement("li");
-      li.textContent = val;
-      if (i === currentMoneyIndex) li.classList.add("current");
-      moneyList.appendChild(li);
-    });
-  }
+// ======================= LIFELINES =======================
+function useFifty(){
+  if(usedFifty) return;
+  usedFifty = true;
+  fiftyBtn.disabled = true;
+  const q = questions[currentQuestionIndex];
+  const buttons = document.querySelectorAll('.option-btn');
+  const wrongs = Array.from(buttons).filter(b=>b.textContent!==q.correct);
+  wrongs.sort(()=>Math.random()-0.5).slice(0,2).forEach(b=>b.disabled=true);
+}
 
-  function updateMoneyLadder() {
-    const lis = moneyList.querySelectorAll("li");
-    lis.forEach(li => li.classList.remove("current"));
-    lis[currentMoneyIndex].classList.add("current");
-  }
+function useCall(){
+  if(usedCall) return;
+  usedCall = true;
+  callBtn.disabled = true;
+  alert(`📞 Call a Friend suggests: "${questions[currentQuestionIndex].correct}"`);
+}
 
-  // ---------------- TIMER ----------------
-  function startTimer() {
-    clearInterval(timerInterval);
-    timerSeconds = 30;
-    updateTimerCircle();
-
-    timerInterval = setInterval(() => {
-      timerSeconds--;
-      updateTimerCircle();
-      if (timerSeconds <= 0) {
-        clearInterval(timerInterval);
-        handleAnswer(null); // Timeout
-      }
-    }, 1000);
-  }
-
-  function updateTimerCircle() {
-    const radius = 35;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (timerSeconds / 30) * circumference;
-    timerCircle.style.strokeDasharray = `${circumference}`;
-    timerCircle.style.strokeDashoffset = `${offset}`;
-    timerText.textContent = `${timerSeconds}s`;
-
-    if (timerSeconds <= 10) timerCircle.style.stroke = "#ff0000";
-    else timerCircle.style.stroke = "#00ff00";
-  }
-
-  // ---------------- SHOW QUESTION ----------------
-  function showQuestion() {
-    const q = questions[currentQuestionIndex];
-    quizEl.innerHTML = `<h3>${q.question}</h3>`;
-
-    q.options.forEach(opt => {
-      const btn = document.createElement("button");
-      btn.className = "option-btn";
-      btn.textContent = opt;
-      btn.addEventListener("click", () => handleAnswer(opt));
-      quizEl.appendChild(btn);
-    });
-
-    startTimer();
-  }
-
-  // ---------------- HANDLE ANSWER ----------------
-  function handleAnswer(selected) {
-    clearInterval(timerInterval);
-    const q = questions[currentQuestionIndex];
-    const buttons = quizEl.querySelectorAll(".option-btn");
-
-    buttons.forEach(btn => {
-      btn.disabled = true;
-      if (btn.textContent === q.answer) {
-        btn.classList.add("correct");
-      } else if (btn.textContent === selected) {
-        btn.classList.add("wrong");
-        btn.classList.add("shake");
-      }
-    });
-
-    if (selected === q.answer) {
-      correctSound.play();
-      currentMoneyIndex++;
-      updateMoneyLadder();
-    } else {
-      wrongSound.play();
-    }
-
-    setTimeout(() => {
-      currentQuestionIndex++;
-      if (currentQuestionIndex >= questions.length) {
-        alert("Quiz Finished!");
-        location.reload();
-      } else {
-        showQuestion();
-      }
-    }, 2000);
-  }
-
-  // ---------------- LIFELINES ----------------
-  fiftyBtn.addEventListener("click", () => {
-    const q = questions[currentQuestionIndex];
-    const buttons = quizEl.querySelectorAll(".option-btn");
-    let removed = 0;
-    buttons.forEach(btn => {
-      if (btn.textContent !== q.answer && removed < 2) {
-        btn.style.display = "none";
-        removed++;
-      }
-    });
-    fiftyBtn.disabled = true;
-  });
-
-  callBtn.addEventListener("click", () => {
-    const q = questions[currentQuestionIndex];
-    alert(`Call a Friend Suggests: "${q.answer}"`);
-    callBtn.disabled = true;
-  });
-
-  audienceBtn.addEventListener("click", () => {
-    const q = questions[currentQuestionIndex];
-    const percentages = [0, 0, 0, 0];
-    const correctIndex = q.options.indexOf(q.answer);
-    percentages[correctIndex] = Math.floor(Math.random() * 50) + 50;
-    let remaining = 100 - percentages[correctIndex];
-    for (let i = 0; i < percentages.length; i++) {
-      if (i !== correctIndex) {
-        let val = Math.floor(Math.random() * remaining);
-        percentages[i] = val;
-        remaining -= val;
-      }
-    }
-
-    const result = q.options.map((opt, i) => `${opt}: ${percentages[i]}%`).join("\n");
-    alert("Audience Vote:\n" + result);
-    audienceBtn.disabled = true;
-  });
-});
+function useAudience(){
+  if(usedAudience) return;
+  usedAudience = true;
+  audienceBtn.disabled = true;
+  const q = questions[currentQuestionIndex];
+  alert(`👥 Audience Vote: Most people choose "${questions[currentQuestionIndex].correct}"`);
+}
