@@ -4,24 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon Quiz App</title>
+
 <link rel="stylesheet" href="style.css">
 
-<!-- Firebase SDK -->
+<!-- Firebase SDK (kept for auth / future leaderboard) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
 <div class="container">
 
-  <!-- LOGIN / REGISTER -->
+  <!-- LOGIN -->
   <div id="authDiv">
     <h1>🎯 Neon Quiz Challenge</h1>
     <button id="googleLoginBtn">Login with Google</button>
     <button id="emailRegisterBtn">Register / Login with Email</button>
   </div>
 
-  <!-- EMAIL LOGIN FORM -->
+  <!-- EMAIL LOGIN -->
   <div id="emailDiv" style="display:none;">
     <input type="email" id="emailInput" placeholder="Email">
     <input type="password" id="passwordInput" placeholder="Password">
@@ -31,72 +33,96 @@
   </div>
 
   <!-- LOGOUT -->
-  <div id="logoutDiv" style="display:none; margin-bottom:15px;">
+  <div id="logoutDiv" style="display:none;">
     <button id="logoutBtn">Logout</button>
   </div>
 
-  <!-- CATEGORY SELECTION -->
+  <!-- CATEGORY -->
   <div id="categoryDiv" style="display:none;">
-    <label for="categorySelect">Choose Category:</label>
+    <label>Choose Category:</label>
     <select id="categorySelect">
+      <option value="general">General Knowledge</option>
       <option value="science">Science</option>
       <option value="history">History</option>
-      <option value="geography">Geography</option>
-      <option value="music">Music</option>
-      <option value="film_and_tv">Film & TV</option>
       <option value="sports">Sports</option>
-      <option value="food_and_drink">Food & Drink</option>
-      <option value="general_knowledge">General Knowledge</option>
+      <option value="music">Music</option>
+      <option value="geography">Geography</option>
     </select>
 
-    <label for="questionCount">Number of Questions:</label>
+    <label>Number of Questions:</label>
     <select id="questionCount">
-      <option value="10">10</option>
-      <option value="15">15</option>
-      <option value="20">20</option>
-      <option value="25">25</option>
-      <option value="30">30</option>
+      <option>10</option>
+      <option>15</option>
+      <option>20</option>
     </select>
 
     <button id="startBtn">Start Quiz</button>
   </div>
 
-  <!-- QUIZ + MONEY LADDER -->
+  <!-- QUIZ -->
   <div id="quiz-container" style="display:none;">
+
     <div id="quiz-and-ladder">
       <div id="quiz"></div>
       <ul id="money-list"></ul>
     </div>
 
-    <!-- Lifelines -->
-<div id="lifelines">
-  <button id="fiftyBtn">50:50 ✂️</button>
-  <button id="callBtn">📞 Call a Friend</button>
-  <button id="audienceBtn">👥 Audience Vote</button>
-</div>
+    <!-- LIFELINES -->
+    <div id="lifelines">
+      <button id="fiftyBtn">50:50 ✂️</button>
+      <button id="callBtn">📞 Call a Friend</button>
+      <button id="audienceBtn">👥 Audience Vote</button>
+    </div>
 
+    <!-- AUDIENCE VOTE -->
+    <div id="audience-box" class="hidden">
+      <h3>👥 Audience Vote</h3>
 
-    <!-- Circular Timer -->
+      <div class="audience-row">
+        <span>A</span>
+        <div class="bar"><div id="barA"></div></div>
+        <span id="percA">0%</span>
+      </div>
+
+      <div class="audience-row">
+        <span>B</span>
+        <div class="bar"><div id="barB"></div></div>
+        <span id="percB">0%</span>
+      </div>
+
+      <div class="audience-row">
+        <span>C</span>
+        <div class="bar"><div id="barC"></div></div>
+        <span id="percC">0%</span>
+      </div>
+
+      <div class="audience-row">
+        <span>D</span>
+        <div class="bar"><div id="barD"></div></div>
+        <span id="percD">0%</span>
+      </div>
+    </div>
+
+    <!-- TIMER -->
     <div id="timer-container">
-      <svg id="timer-svg" width="80" height="80">
-        <circle cx="40" cy="40" r="35" stroke="#00ff00" stroke-width="8" fill="none"></circle>
+      <svg width="90" height="90">
+        <circle cx="45" cy="45" r="40" stroke="#00ff00" stroke-width="8" fill="none"></circle>
       </svg>
       <span id="timer-text">30s</span>
     </div>
 
-    <div id="hint-box"></div>
   </div>
 
-  <!-- Leaderboard -->
+  <!-- LEADERBOARD (future Firebase) -->
   <h2>🏆 Leaderboard</h2>
   <ul id="leaderboard-list"></ul>
 
-  <!-- Sounds -->
-  <audio id="correct-sound" src="https://raw.githubusercontent.com/divinegrapx/quiz-app/main/correct.wav"></audio>
-  <audio id="wrong-sound" src="https://raw.githubusercontent.com/divinegrapx/quiz-app/main/wrong.wav"></audio>
-  <audio id="tick-sound" src="https://raw.githubusercontent.com/divinegrapx/quiz-app/main/tick.mp3"></audio>
+  <!-- SOUNDS -->
+  <audio id="correct-sound" src="correct.wav"></audio>
+  <audio id="wrong-sound" src="wrong.wav"></audio>
 
 </div>
+
 <script src="script.js"></script>
 </body>
 </html>
