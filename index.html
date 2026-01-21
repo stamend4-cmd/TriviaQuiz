@@ -5,11 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon Quiz App</title>
 <link rel="stylesheet" href="style.css">
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="container">
@@ -17,54 +12,17 @@
   <!-- LOGIN / REGISTER -->
   <div id="authDiv">
     <h1>🎯 Neon Quiz Challenge</h1>
-    <button id="googleLoginBtn">Login with Google</button>
-    <button id="emailRegisterBtn">Register / Login with Email</button>
-  </div>
-
-  <!-- EMAIL LOGIN FORM -->
-  <div id="emailDiv" style="display:none;">
-    <input type="email" id="emailInput" placeholder="Email">
-    <input type="password" id="passwordInput" placeholder="Password">
-    <button id="emailLoginBtn">Login</button>
-    <button id="emailRegisterSubmitBtn">Register</button>
-    <button id="emailCancelBtn">Cancel</button>
-  </div>
-
-  <!-- LOGOUT -->
-  <div id="logoutDiv" style="display:none; margin-bottom:15px;">
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <!-- CATEGORY SELECTION -->
-  <div id="categoryDiv" style="display:none;">
-    <label for="categorySelect">Choose Category:</label>
-    <select id="categorySelect">
-      <option value="science">Science</option>
-      <option value="history">History</option>
-      <option value="geography">Geography</option>
-      <option value="music">Music</option>
-      <option value="film_and_tv">Film & TV</option>
-      <option value="sports">Sports</option>
-      <option value="food_and_drink">Food & Drink</option>
-      <option value="general_knowledge">General Knowledge</option>
-    </select>
-
-    <label for="questionCount">Number of Questions:</label>
-    <select id="questionCount">
-      <option value="10">10</option>
-      <option value="15">15</option>
-      <option value="20">20</option>
-      <option value="25">25</option>
-      <option value="30">30</option>
-    </select>
-
     <button id="startBtn">Start Quiz</button>
   </div>
 
   <!-- QUIZ + MONEY LADDER -->
   <div id="quiz-container" style="display:none;">
     <div id="quiz-and-ladder">
-      <div id="quiz"></div>
+      <div id="quiz">
+        <h2 id="question-number"></h2>
+        <p id="question-text"></p>
+        <div id="answers"></div>
+      </div>
       <ul id="money-list"></ul>
     </div>
 
@@ -83,77 +41,9 @@
       <span id="timer-text">30s</span>
     </div>
 
-    <div id="hint-box"></div>
   </div>
 
-  <!-- Leaderboard -->
-  <h2>🏆 Leaderboard</h2>
-  <ul id="leaderboard-list"></ul>
-
-  <!-- Sounds -->
-  <audio id="correct-sound" src="correct.wav"></audio>
-  <audio id="wrong-sound" src="wrong.wav"></audio>
-  <audio id="tick-sound" src="tick.mp3"></audio>
-
 </div>
-
-<script>
-// ---------------- GLOBALS ----------------
-let questions = [];
-let currentQuestionIndex = 0;
-let score = 0;
-let timerInterval;
-let timerDuration = 30;
-
-// ---------------- UTILITIES ----------------
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
-
-// ---------------- FETCH QUESTIONS ----------------
-async function fetchQuestions(category, count) {
-  questions = [];
-
-  // OpenTDB
-  try {
-    const otResp = await fetch(`https://opentdb.com/api.php?amount=${Math.floor(count/3)}&category=9&type=multiple`);
-    const otData = await otResp.json();
-    questions.push(...otData.results.map(q => ({
-      question: q.question,
-      correct: q.correct_answer,
-      answers: shuffle([...q.incorrect_answers, q.correct_answer])
-    })));
-  } catch(e){ console.error('OpenTDB failed', e); }
-
-  // Trivia API
-  try {
-    const tResp = await fetch(`https://the-trivia-api.com/api/questions?categories=${category}&limit=${Math.floor(count/3)}`);
-    const tData = await tResp.json();
-    questions.push(...tData.map(q => ({
-      question: q.question,
-      correct: q.correctAnswer,
-      answers: shuffle([...q.incorrectAnswers, q.correctAnswer])
-    })));
-  } catch(e){ console.error('Trivia API failed', e); }
-
-  // QuizAPI.io
-  try {
-    const quizAPIKey = 'Wh9Plnz7rOMzEpgZsjHIomRe6nL4TKiB6VQxOk08';
-    const qResp = await fetch(`https://quizapi.io/api/v1/questions?apiKey=${quizAPIKey}&category=${category}&limit=${Math.floor(count/3)}`);
-    const qData = await qResp.json();
-    qData.forEach(q => {
-      let answers = [];
-      for(let key in q.answers){ if(q.answers[key]) answers.push(q.answers[key]); }
-      questions.push({ question: q.question, correct: q.correct_answer, answers: shuffle(answers) });
-    });
-  } catch(e){ console.error('QuizAPI.io failed', e); }
-
-  questions = shuffle(questions).slice(0, count);
-  console.log('Loaded questions:', questions);
-}
-
-// ---------------- TODO: Add START QUIZ, SHOW QUESTION, TIMER, BUTTON CLICK, MONEY LADDER, LIFELINES logic ----------------
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
