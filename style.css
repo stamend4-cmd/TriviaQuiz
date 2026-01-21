@@ -1,242 +1,237 @@
-/* =========================
-   GLOBAL RESET
-========================= */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", Tahoma, sans-serif;
-}
-
+/* ---------------- BODY ---------------- */
 body {
-  background: radial-gradient(circle at top, #050510, #000);
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(270deg, #0f2027, #203a43, #2c5364, #0f2027);
+  background-size: 800% 800%;
   color: #fff;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-}
-
-/* =========================
-   MAIN LAYOUT
-========================= */
-.container {
-  max-width: 900px;
-  width: 100%;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: 1fr 220px;
-  gap: 16px;
-}
-
-@media (max-width: 768px) {
-  .container {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* =========================
-   QUIZ PANEL
-========================= */
-.quiz-box {
-  background: rgba(0,0,0,0.8);
-  border-radius: 16px;
+  align-items: flex-start;
+  min-height: 100vh;
   padding: 20px;
-  box-shadow: 0 0 30px rgba(0,255,255,0.15);
+  animation: gradientBG 20s ease infinite;
 }
 
-.quiz-box h2 {
-  margin-bottom: 16px;
-  line-height: 1.4;
-}
-
-/* =========================
-   ANSWER BUTTONS
-========================= */
-.option-btn {
+/* ---------------- CONTAINER ---------------- */
+.container {
   width: 100%;
-  padding: 14px;
-  margin: 10px 0;
-  border-radius: 10px;
-  border: none;
+  max-width: 900px;
+  text-align: center;
+  border-radius: 20px;
+  padding: 30px;
+  background: rgba(0,0,0,0.6);
+  box-shadow: 0 0 30px #00f2fe;
+}
+
+/* ---------------- LOGIN / EMAIL BUTTONS ---------------- */
+#authDiv button, #emailDiv button, #logoutDiv button {
+  margin: 10px;
+  padding: 14px 28px;
   font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
+  background: linear-gradient(135deg,#00f2fe,#00c6ff);
+  color: #fff;
+  box-shadow: 0 0 5px #00f2fe, 0 0 20px #00c6ff inset;
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+#authDiv button:hover, #emailDiv button:hover, #logoutDiv button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #00f2fe, 0 0 30px #00c6ff inset;
+}
+
+/* ---------------- QUIZ ---------------- */
+#quiz {
+  background: rgba(255,255,255,0.05);
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px #00f2fe;
+  min-height: 400px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s;
+  color: #fff;
+}
+
+/* ---------------- OPTION BUTTONS ---------------- */
+.option-btn {
+  display: block;
+  width: 90%;
+  margin: 10px auto;
+  padding: 14px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+  border-radius:12px;
+  border:none;
   background: #111;
-  color: #fff;
-  transition: all .3s ease;
+  color:#fff;
+  box-shadow:0 0 5px #00f2fe,0 0 15px #00c6ff inset;
+  transition:0.3s, transform 0.2s, background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+.option-btn:hover:not(:disabled){
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #00f2fe, 0 0 30px #00c6ff inset;
 }
 
-.option-btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 0 15px cyan;
-}
-
+/* Correct / Wrong overrides */
 .option-btn.correct {
-  background: #00ff00 !important;
-  color: #000;
-  box-shadow: 0 0 30px #00ff00;
+  background-color: #00ff00 !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px #00ff00 inset !important;
 }
-
 .option-btn.wrong {
-  background: #ff0000 !important;
+  background-color: #ff0000 !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px #ff0000 inset !important;
+}
+
+/* ---------------- LIFELINES ---------------- */
+#lifelines {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+  gap: 10px;
+}
+#lifelines button {
+  padding: 12px 18px;
+  font-weight:bold;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  background: linear-gradient(135deg,#ff6a00,#ffb347);
+  box-shadow: 0 0 10px #ffb347 inset;
+  color:#fff;
+  transition: transform 0.2s, opacity 0.3s, box-shadow 0.3s;
+}
+#lifelines button:hover:not(:disabled){ transform: scale(1.05); }
+
+/* Disabled lifeline */
+#lifelines button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------------- MONEY LADDER ---------------- */
+#money-list {
+  display: flex;
+  flex-direction: column-reverse;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 130px;
+  max-height: 400px;
+  overflow: hidden;
+}
+#money-list li {
+  padding: 10px 12px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  font-size: 14px;
+  transition: 0.3s;
   color: #fff;
-  box-shadow: 0 0 30px #ff0000;
+}
+#money-list li.current {
+  background: linear-gradient(90deg,#00ff00,#00cc00);
+  font-weight: bold;
+  color: #000;
+  box-shadow: 0 0 15px #00ff00, 0 0 30px #00cc00 inset;
+  animation: ladderGlow 1s infinite alternate;
 }
 
-/* =========================
-   SHAKE
-========================= */
-.shake {
-  animation: shake .4s;
-}
-
-@keyframes shake {
-  0% {transform: translateX(0);}
-  25% {transform: translateX(-6px);}
-  50% {transform: translateX(6px);}
-  75% {transform: translateX(-6px);}
-  100% {transform: translateX(0);}
-}
-
-/* =========================
-   TIMER (CIRCULAR)
-========================= */
-.timer {
+/* ---------------- TIMER ---------------- */
+#timer-container {
   width: 80px;
   height: 80px;
-  margin: 0 auto 15px;
+  margin: 20px auto;
   position: relative;
 }
-
-.timer svg {
-  transform: rotate(-90deg);
-}
-
-#timer-circle {
-  fill: none;
-  stroke-width: 6;
-  stroke-linecap: round;
-  transition: stroke .4s;
-}
-
 #timer-text {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  font-weight: bold;
+  top:50%; left:50%;
+  transform: translate(-50%,-50%);
+  font-weight:bold;
+  font-size:1.2rem;
+  text-shadow: 0 0 5px #000;
+}
+#timer-svg circle {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke 0.3s, stroke-dashoffset 0.3s;
 }
 
-/* =========================
-   LIFELINES 🧠
-========================= */
-.lifelines {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
+/* ---------------- FEEDBACK ---------------- */
+#feedback {
+  margin-top: 10px;
+  font-size:1.1rem;
+  font-weight:bold;
+  text-shadow: 0 0 5px #000;
+}
+.correct-answer {
+  color: #00ffcc;
+  font-weight:bold;
+  display:block;
+  margin-top:5px;
 }
 
-.lifeline {
-  flex: 1;
-  margin: 0 4px;
-  padding: 10px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #111, #222);
-  color: cyan;
-  border: 1px solid cyan;
-  cursor: pointer;
-  transition: all .3s;
-  font-size: .9rem;
-}
-
-.lifeline:hover {
-  background: cyan;
-  color: #000;
-  box-shadow: 0 0 20px cyan;
-}
-
-.lifeline.used {
-  opacity: .3;
-  pointer-events: none;
-}
-
-/* =========================
-   MONEY LADDER 💰
-========================= */
-.ladder {
-  background: rgba(0,0,0,0.8);
-  border-radius: 16px;
-  padding: 12px;
-}
-
-.ladder ul {
-  list-style: none;
-}
-
-.ladder li {
-  padding: 8px;
-  margin: 6px 0;
-  border-radius: 8px;
-  background: #111;
-  text-align: center;
-  transition: all .4s;
-}
-
-.ladder li.active {
-  background: linear-gradient(90deg,#00ffcc,#00ff00);
-  color: #000;
-  font-weight: bold;
-  box-shadow: 0 0 25px #00ff00;
-  animation: ladderPulse 1.2s infinite;
-}
-
-@keyframes ladderPulse {
-  0% {box-shadow: 0 0 15px #00ff00;}
-  50% {box-shadow: 0 0 40px #00ff00;}
-  100% {box-shadow: 0 0 15px #00ff00;}
-}
-
-/* =========================
-   START BUTTON
-========================= */
-#start-btn {
-  width: 100%;
-  padding: 16px;
+/* ---------------- LEADERBOARD ---------------- */
+#leaderboard-list {
   margin-top: 20px;
-  font-size: 1.2rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, cyan, #00ffcc);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 0 30px cyan;
+  list-style:none;
+  padding:0;
+}
+#leaderboard-list li {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:5px 0;
+  font-weight:bold;
+  color:#fff;
+}
+#leaderboard-list img {
+  border-radius:50%;
+  border:1px solid #00f2fe;
 }
 
-#start-btn:hover {
-  transform: scale(1.05);
+/* ---------------- ANIMATIONS ---------------- */
+@keyframes fadeIn {
+  from{ opacity:0; transform: translateY(20px);}
+  to{ opacity:1; transform: translateY(0);}
+}
+@keyframes shake {
+  0% { transform: translateX(0px);}
+  20% { transform: translateX(-5px);}
+  40% { transform: translateX(5px);}
+  60% { transform: translateX(-5px);}
+  80% { transform: translateX(5px);}
+  100% { transform: translateX(0px);}
+}
+.shake { animation: shake 0.5s; }
+@keyframes ladderGlow {
+  0% { box-shadow: 0 0 10px #00ff00, 0 0 20px #00cc00 inset; }
+  100% { box-shadow: 0 0 20px #00ff00, 0 0 40px #00cc00 inset; }
 }
 
-/* =========================
-   MOBILE POLISH 📱
-========================= */
-@media (max-width: 480px) {
-  .quiz-box h2 {
-    font-size: 1.1rem;
-  }
+/* ---------------- GRADIENT BACKGROUND ---------------- */
+@keyframes gradientBG {
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
 
-  .option-btn {
-    font-size: .95rem;
-    padding: 12px;
+/* ---------------- RESPONSIVE ---------------- */
+@media screen and (max-width: 768px) {
+  #quiz-and-ladder {
+    flex-direction: column;
+    align-items: center;
   }
-
-  .lifeline {
-    font-size: .75rem;
-    padding: 8px;
-  }
-
-  .ladder {
-    order: -1;
-    margin-bottom: 16px;
-  }
+  #money-list { width: 90%; max-width: 300px; margin-top: 15px; }
+  .option-btn { width: 100%; font-size: 18px; padding: 16px; }
+  #timer-container { width: 60px; height: 60px; }
+  #timer-text { font-size: 1rem; }
 }
