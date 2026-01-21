@@ -1,6 +1,6 @@
 // ======================= Firebase Init =======================
 const firebaseConfig = {
-  apiKey: "AIzaSyDCCBKiQio6iPKm36MQdGqb9LzTOxbOfiE",
+  apiKey: "Wh9Plnz7rOMzEpgZsjHIomRe6nL4TKiB6VQxOk08",
   authDomain: "triviaquiz-2579b.firebaseapp.com",
   projectId: "triviaquiz-2579b"
 };
