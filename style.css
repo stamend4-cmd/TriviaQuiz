@@ -43,7 +43,14 @@ body {
   box-shadow: 0 0 10px #00f2fe, 0 0 30px #00c6ff inset;
 }
 
-/* ---------------- QUIZ ---------------- */
+/* ---------------- QUIZ + LADDER ---------------- */
+#quiz-and-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
 #quiz {
   background: rgba(255,255,255,0.05);
   padding: 25px;
@@ -55,76 +62,21 @@ body {
   flex-direction: column;
   align-items: center;
   transition: transform 0.3s;
-  color: #fff;
+  color: #fff; /* Question text white */
 }
 
-/* ---------------- OPTION BUTTONS ---------------- */
-.option-btn {
-  display: block;
-  width: 90%;
-  margin: 10px auto;
-  padding: 14px;
-  font-size:16px;
-  font-weight:600;
-  cursor:pointer;
-  border-radius:12px;
-  border:none;
-  background: #111;
-  color:#fff;
-  box-shadow:0 0 5px #00f2fe,0 0 15px #00c6ff inset;
-  transition:0.3s, transform 0.2s, background 0.3s, color 0.3s, box-shadow 0.3s;
-}
-.option-btn:hover:not(:disabled){
-  transform: scale(1.05);
-  box-shadow: 0 0 10px #00f2fe, 0 0 30px #00c6ff inset;
+#quiz.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+  opacity: 0;
 }
 
-/* Correct / Wrong overrides */
-.option-btn.correct {
-  background-color: #00ff00 !important;
-  color: #000 !important;
-  box-shadow: 0 0 20px #00ff00 inset !important;
-}
-.option-btn.wrong {
-  background-color: #ff0000 !important;
-  color: #fff !important;
-  box-shadow: 0 0 20px #ff0000 inset !important;
-}
-
-/* ---------------- LIFELINES ---------------- */
-#lifelines {
-  display: flex;
-  justify-content: center;
-  margin: 15px 0;
-  gap: 10px;
-}
-#lifelines button {
-  padding: 12px 18px;
-  font-weight:bold;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  background: linear-gradient(135deg,#ff6a00,#ffb347);
-  box-shadow: 0 0 10px #ffb347 inset;
-  color:#fff;
-  transition: transform 0.2s, opacity 0.3s, box-shadow 0.3s;
-}
-#lifelines button:hover:not(:disabled){ transform: scale(1.05); }
-
-/* Disabled lifeline */
-#lifelines button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------------- MONEY LADDER ---------------- */
 #money-list {
   display: flex;
   flex-direction: column-reverse;
   list-style: none;
   padding: 0;
   margin: 0;
-  width: 130px;
+  width: 140px;
   max-height: 400px;
   overflow: hidden;
 }
@@ -141,43 +93,117 @@ body {
   font-weight: bold;
   color: #000;
   box-shadow: 0 0 15px #00ff00, 0 0 30px #00cc00 inset;
-  animation: ladderGlow 1s infinite alternate;
+  animation: ladderGlow 1.2s infinite alternate;
 }
+
+@keyframes ladderGlow {
+  0% { box-shadow: 0 0 15px #00ff00, 0 0 30px #00cc00 inset; }
+  100% { box-shadow: 0 0 25px #00ff00, 0 0 50px #00cc00 inset; }
+}
+
+/* ---------------- OPTION BUTTONS ---------------- */
+.option-btn {
+  display: block;
+  width: 90%;
+  margin: 10px auto;
+  padding: 14px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+  border-radius:12px;
+  border:none;
+  background: linear-gradient(135deg,#00f2fe,#00c6ff);
+  color:#000; /* Black text for answers */
+  box-shadow:0 0 5px #00f2fe,0 0 15px #00c6ff inset;
+  transition:0.3s, transform 0.2s, background 0.3s, color 0.3s;
+}
+.option-btn:hover:not(:disabled){
+  transform: scale(1.05);
+  box-shadow:0 0 10px #00f2fe,0 0 30px #00c6ff inset;
+}
+
+/* Correct / Wrong overrides */
+.option-btn.correct {
+  background-color: #00ff00 !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px #00ff00 inset !important;
+}
+.option-btn.wrong {
+  background-color: #ff0000 !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px #ff0000 inset !important;
+}
+
+/* ---------------- LIFELINES ---------------- */
+#lifelines {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#lifelines button {
+  padding: 10px 18px;
+  font-weight:bold;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  background: linear-gradient(135deg,#ff6a00,#ffb347);
+  box-shadow: 0 0 10px #ffb347 inset;
+  color:#fff;
+  transition: transform 0.2s, opacity 0.3s;
+}
+#lifelines button:hover:not(:disabled){ transform: scale(1.05); }
+#lifelines button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------------- TIMER ---------------- */
 #timer-container {
-  width: 80px;
-  height: 80px;
-  margin: 20px auto;
+  width: 100px;
+  height: 100px;
   position: relative;
-}
-#timer-text {
-  position: absolute;
-  top:50%; left:50%;
-  transform: translate(-50%,-50%);
-  font-weight:bold;
-  font-size:1.2rem;
-  text-shadow: 0 0 5px #000;
+  margin: 20px auto;
 }
 #timer-svg circle {
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  transition: stroke 0.3s, stroke-dashoffset 0.3s;
+  stroke-dasharray: 219.91;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s;
+}
+#timer-text {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-weight:bold;
+  font-size:1.4rem;
+  text-shadow: 0 0 5px #000;
 }
 
 /* ---------------- FEEDBACK ---------------- */
-#feedback {
+#hint-box {
   margin-top: 10px;
-  font-size:1.1rem;
+  font-size:1rem;
   font-weight:bold;
-  text-shadow: 0 0 5px #000;
+  color:#fffa;
+  text-shadow:0 0 5px #000;
 }
-.correct-answer {
-  color: #00ffcc;
-  font-weight:bold;
-  display:block;
-  margin-top:5px;
+
+/* ---------------- ANIMATIONS ---------------- */
+@keyframes fadeIn {
+  from{ opacity:0; transform: translateY(20px);}
+  to{ opacity:1; transform: translateY(0);}
 }
+
+@keyframes shake {
+  0% { transform: translateX(0px);}
+  20% { transform: translateX(-5px);}
+  40% { transform: translateX(5px);}
+  60% { transform: translateX(-5px);}
+  80% { transform: translateX(5px);}
+  100% { transform: translateX(0px);}
+}
+.shake { animation: shake 0.5s; }
 
 /* ---------------- LEADERBOARD ---------------- */
 #leaderboard-list {
@@ -198,40 +224,17 @@ body {
   border:1px solid #00f2fe;
 }
 
-/* ---------------- ANIMATIONS ---------------- */
-@keyframes fadeIn {
-  from{ opacity:0; transform: translateY(20px);}
-  to{ opacity:1; transform: translateY(0);}
-}
-@keyframes shake {
-  0% { transform: translateX(0px);}
-  20% { transform: translateX(-5px);}
-  40% { transform: translateX(5px);}
-  60% { transform: translateX(-5px);}
-  80% { transform: translateX(5px);}
-  100% { transform: translateX(0px);}
-}
-.shake { animation: shake 0.5s; }
-@keyframes ladderGlow {
-  0% { box-shadow: 0 0 10px #00ff00, 0 0 20px #00cc00 inset; }
-  100% { box-shadow: 0 0 20px #00ff00, 0 0 40px #00cc00 inset; }
-}
-
-/* ---------------- GRADIENT BACKGROUND ---------------- */
+/* ---------------- GRADIENT BACKGROUND ANIMATION ---------------- */
 @keyframes gradientBG {
   0%{background-position:0% 50%;}
   50%{background-position:100% 50%;}
   100%{background-position:0% 50%;}
 }
 
-/* ---------------- RESPONSIVE ---------------- */
-@media screen and (max-width: 768px) {
-  #quiz-and-ladder {
-    flex-direction: column;
-    align-items: center;
-  }
-  #money-list { width: 90%; max-width: 300px; margin-top: 15px; }
-  .option-btn { width: 100%; font-size: 18px; padding: 16px; }
-  #timer-container { width: 60px; height: 60px; }
-  #timer-text { font-size: 1rem; }
+/* ---------------- MOBILE POLISH ---------------- */
+@media (max-width:768px){
+  #quiz-and-ladder { flex-direction: column; align-items:center; }
+  #money-list { width:100%; max-width:200px; text-align:center; }
+  #quiz { width:100%; min-height:300px; }
+  #lifelines button { font-size:0.9rem; padding:8px 14px; }
 }
